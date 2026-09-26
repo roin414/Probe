@@ -1,5 +1,7 @@
 # 🐻‍❄️ Eisbärchen
 
+▶️ **Jetzt spielen: https://roin414.github.io/Probe/**
+
 Ein kleines Tamagotchi im Browser: ein orangener Eisbär in Pixel-Art. Es läuft auf dem iPhone und am Computer, ohne zusätzliche Hardware.
 
 ## So funktioniert das Spiel
