@@ -17,8 +17,3 @@ Ein kleines Tamagotchi im Browser: ein orangener Eisbär in Pixel-Art. Es läuft
 ## Auf dem iPhone
 In Safari öffnen → **Teilen** → **„Zum Home-Bildschirm“**. Danach nur noch über das Symbol auf dem Home-Bildschirm spielen.
 Safari löscht sonst nach einiger Zeit ohne Nutzung die Spieldaten. Außerdem hat das Home-Bildschirm-Symbol einen eigenen Speicher.
-
-## Veröffentlichen (GitHub Pages)
-1. Repository auf **öffentlich** stellen (Settings → General → Danger Zone → Change visibility).
-2. Settings → **Pages** → Source: „Deploy from a branch“ → Branch **`main`**, Ordner `/ (root)` → Save.
-3. Nach 1–2 Minuten ist das Spiel unter `https://<benutzername>.github.io/Probe/` erreichbar.
