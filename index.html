@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Eisbärchen">
+<meta name="theme-color" content="#f28c28">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>Eisbärchen</title>
+<style>
+  :root {
+    --ink: #2a2f3a;
+    --muted: #6b7280;
+    --shell: #f4fbff;
+    --shell-edge: #bfe0f0;
+    --accent: #f28c28;
+    --accent-dark: #b85c10;
+    --good: #5cc26b;
+    --warn: #f2b418;
+    --bad: #e4404f;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: linear-gradient(165deg, #fff1dc 0%, #fbcf95 55%, #f28c28 100%) fixed;
+    font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    padding: calc(env(safe-area-inset-top) + 14px) 14px calc(env(safe-area-inset-bottom) + 14px);
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+    overscroll-behavior: none;
+  }
+  .hidden { display: none !important; }
+
+  .device {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    align-self: flex-start;
+    background: radial-gradient(120% 80% at 30% 10%, #ffffff 0%, var(--shell) 55%, #e2f2fa 100%);
+    border: 4px solid var(--shell-edge);
+    border-radius: 170px 170px 44px 44px;
+    padding: 34px 20px 22px;
+    box-shadow: 0 18px 40px rgba(120, 60, 10, .28), inset 0 -8px 0 rgba(150, 200, 225, .35);
+  }
+
+  .top { text-align: center; margin-bottom: 10px; }
+  .name { font-size: 22px; font-weight: 800; letter-spacing: .5px; color: var(--accent-dark); min-height: 28px; }
+  .age { font-size: 13px; color: var(--muted); min-height: 16px; }
+
+  .screen-wrap {
+    position: relative;
+    background: #2d3a4a;
+    border-radius: 22px;
+    padding: 10px;
+    box-shadow: inset 0 3px 8px rgba(0,0,0,.45);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    cursor: pointer;
+  }
+  .bday {
+    position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
+    background: #fff; color: var(--bad); font-weight: 800; font-size: 13px;
+    padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,.2);
+    animation: pop 1.2s ease-in-out infinite alternate;
+  }
+  @keyframes pop { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.07); } }
+
+  .bubble {
+    margin: 12px 4px 10px;
+    background: #fff;
+    border: 3px solid var(--ink);
+    border-radius: 16px;
+    padding: 8px 12px;
+    font-weight: 700;
+    font-size: 15px;
+    text-align: center;
+    min-height: 44px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .stats { display: grid; gap: 6px; margin: 0 4px 14px; }
+  .stat { display: grid; grid-template-columns: 22px 88px 1fr; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
+  .stat .ic { font-size: 16px; text-align: center; }
+  .bar { height: 12px; background: #dde8ee; border: 2px solid var(--ink); border-radius: 8px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 50%; background: var(--good); transition: width .4s, background .4s; }
+
+  .actions { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .actions.game { grid-template-columns: 1fr 1fr; }
+  button {
+    font: inherit;
+    border: 3px solid var(--ink);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 16px;
+    padding: 8px 2px 6px;
+    font-size: 11px;
+    font-weight: 800;
+    box-shadow: 0 4px 0 var(--ink);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    cursor: pointer;
+    transition: transform .06s, box-shadow .06s;
+  }
+  button span { font-size: 24px; line-height: 1.1; }
+  button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+  button:disabled { opacity: .4; }
+  .actions.game button { font-size: 16px; padding: 12px; }
+  .alert { background: #ffe9a8; }
+
+  .dead {
+    text-align: center; background: #fff; border: 3px solid var(--ink); border-radius: 18px;
+    padding: 14px; font-weight: 700;
+  }
+  .dead p { margin: 0 0 10px; }
+  .dead small { display: block; color: var(--muted); font-weight: 600; margin-top: 8px; }
+  .dead button { margin: 0 auto; font-size: 16px; padding: 10px 18px; flex-direction: row; background: #ffe0bf; }
+
+  .modal {
+    position: fixed; inset: 0; background: rgba(30, 20, 10, .55);
+    display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 10;
+  }
+  .card {
+    background: #fff; border: 3px solid var(--ink); border-radius: 22px; padding: 20px;
+    width: 100%; max-width: 340px; text-align: center; box-shadow: 0 6px 0 var(--ink);
+  }
+  .card h2 { margin: 0 0 6px; font-size: 20px; color: var(--accent-dark); }
+  .card p { margin: 0 0 14px; color: var(--muted); font-weight: 600; }
+  .card input {
+    width: 100%; font: inherit; font-size: 18px; font-weight: 700; text-align: center;
+    border: 3px solid var(--ink); border-radius: 12px; padding: 10px; margin-bottom: 14px;
+    -webkit-user-select: text; user-select: text;
+  }
+  .card button { width: 100%; font-size: 16px; flex-direction: row; justify-content: center; background: #ffe0bf; }
+
+  .ios {
+    position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 12px);
+    background: #fff; border: 3px solid var(--ink); border-radius: 16px; padding: 12px 40px 12px 14px;
+    font-size: 14px; font-weight: 600; box-shadow: 0 6px 0 var(--ink); z-index: 5; max-width: 420px; margin: 0 auto;
+  }
+  .ios b { color: var(--accent-dark); }
+  body.has-hint { padding-bottom: calc(env(safe-area-inset-bottom) + 150px); }
+  .ios .x {
+    position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; padding: 0;
+    border-radius: 50%; font-size: 16px; box-shadow: none; border-width: 2px; justify-content: center;
+  }
+</style>
+</head>
+<body>
+<main class="device">
+  <header class="top">
+    <div class="name" id="name"></div>
+    <div class="age" id="age"></div>
+  </header>
+
+  <div class="screen-wrap">
+    <canvas id="screen" width="384" height="288" aria-label="Dein Eisbär"></canvas>
+    <div id="bday" class="bday hidden">🎂 Alles Gute zum Geburtstag!</div>
+  </div>
+
+  <div class="bubble" id="bubble" aria-live="polite"></div>
+
+  <section class="stats" id="stats">
+    <div class="stat" data-k="full"><span class="ic">🐟</span><span>Satt</span><div class="bar"><i></i></div></div>
+    <div class="stat" data-k="happy"><span class="ic">😊</span><span>Laune</span><div class="bar"><i></i></div></div>
+    <div class="stat" data-k="energy"><span class="ic">⚡</span><span>Energie</span><div class="bar"><i></i></div></div>
+    <div class="stat" data-k="clean"><span class="ic">🧼</span><span>Sauber</span><div class="bar"><i></i></div></div>
+    <div class="stat" data-k="health"><span class="ic">❤️</span><span>Gesundheit</span><div class="bar"><i></i></div></div>
+  </section>
+
+  <nav class="actions" id="actions">
+    <button data-a="feed"><span>🐟</span>Füttern</button>
+    <button data-a="play"><span>🎾</span>Spielen</button>
+    <button data-a="sleep"><span id="sleepIc">🌙</span><b id="sleepLb">Schlafen</b></button>
+    <button data-a="clean"><span>🛁</span>Putzen</button>
+    <button data-a="med"><span>💊</span>Medizin</button>
+  </nav>
+
+  <nav class="actions game hidden" id="gameBtns">
+    <button data-g="-1"><span>◀</span>Links</button>
+    <button data-g="1"><span>▶</span>Rechts</button>
+  </nav>
+
+  <div class="dead hidden" id="dead">
+    <p id="deadText"></p>
+    <button id="reviveBtn"><span>✨</span>&nbsp;Wiederbeleben</button>
+    <small id="reviveInfo"></small>
+  </div>
+</main>
+
+<div class="modal hidden" id="nameModal">
+  <form class="card" id="nameForm">
+    <h2>Hallo! 🐾</h2>
+    <p>Ich bin gerade geschlüpft.<br>Wie soll ich heißen?</p>
+    <input id="nameInput" maxlength="16" placeholder="Bärli" autocomplete="off">
+    <button type="submit">Das bin ich!</button>
+  </form>
+</div>
+
+<div class="ios hidden" id="iosHint">
+  <button class="x" id="iosClose" aria-label="Schließen">✕</button>
+  📱 <b>Tipp:</b> Tippe unten auf <b>Teilen</b> (□↑) und dann auf <b>„Zum Home-Bildschirm“</b>.
+  Spiele danach nur noch über das Symbol auf dem Home-Bildschirm – sonst kann dein Bär verloren gehen.
+</div>
+
+<script>
+'use strict';
+
+/* ---------- Zeit & Regeln ---------- */
+const MIN = 60e3, HOUR = 60 * MIN, DAY = 24 * HOUR;
+const KEY = 'eisbaer-v1';
+const REVIVE_COOLDOWN = 48 * HOUR;   // einmal alle 2 Tage wiederbeleben
+const HATCH_TIME = 60e3;             // Ei schlüpft nach 1 Minute ...
+const HATCH_TAPS = 8;                // ... oder nach 8 Mal antippen
+const params = new URLSearchParams(location.search);
+
+const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
+const isNight = t => { const h = new Date(t).getHours(); return h >= 22 || h < 7; };
+const isBirthday = t => {
+  if (params.has('geburtstag')) return true;
+  const d = new Date(t); return d.getMonth() === 9 && d.getDate() === 1;   // 1. Oktober
+};
+
+function newState(now) {
+  return {
+    v: 1, stage: 'egg', createdAt: now, hatchAt: null, name: '', eggTaps: 0,
+    full: 80, happy: 80, energy: 100, clean: 100, health: 100,
+    sick: false, poop: 0, poopTimer: 0, sickTimer: 0,
+    napping: false, awakeUntil: 0,
+    dead: false, diedAt: null, lastReviveAt: null, revives: 0,
+    bdayYear: null, lastPet: 0, lastUpdate: now,
+  };
+}
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && s.v === 1) return Object.assign(newState(Date.now()), s);
+  } catch (e) {}
+  return newState(Date.now());
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+}
+
+let S = load();
+
+const isAsleep = (s, t) => s.napping || (isNight(t) && t > s.awakeUntil);
+
+/* Eine Simulationsscheibe von h Stunden. Tagsüber sinken die Werte,
+   nachts schläft der Bär und alles läuft viel langsamer. */
+function tick(s, t, h) {
+  if (s.stage !== 'bear' || s.dead) return;
+  if (isAsleep(s, t)) {
+    s.full -= 2 * h; s.happy -= 1 * h; s.clean -= 1 * h; s.energy += 15 * h;
+    if (s.napping && s.energy >= 100) s.napping = false;
+  } else {
+    s.full -= 7 * h;
+    s.happy -= (s.energy <= 0 ? 10 : 6) * h;
+    s.energy -= 5 * h;
+    s.clean -= 3 * h;
+    s.poopTimer += h;
+    if (s.poopTimer >= 4) { s.poopTimer -= 4; if (s.poop < 3) s.poop++; }
+  }
+  s.clean -= 2 * s.poop * h;
+  for (const k of ['full', 'happy', 'energy', 'clean']) s[k] = clamp(s[k]);
+
+  if (s.clean < 25 || s.poop >= 3) {
+    s.sickTimer += h;
+    if (s.sickTimer >= 3 && !s.sick) { s.sick = true; s.sickTimer = 0; }
+  } else s.sickTimer = Math.max(0, s.sickTimer - h);
+
+  let dmg = 0;
+  if (s.sick) dmg += 4;
+  if (s.full <= 0) dmg += 4;
+  if (s.happy <= 0) dmg += 1;
+  if (s.clean <= 0) dmg += 1;
+  if (s.energy <= 0) dmg += 1;
+  if (dmg > 0) s.health -= dmg * h;
+  else if (s.full > 40 && s.happy > 40) s.health += 4 * h;
+  s.health = clamp(s.health);
+
+  if (s.health <= 0) { s.dead = true; s.diedAt = t; s.napping = false; }
+}
+
+function simulate(s, to) {
+  let t = Math.max(s.lastUpdate, to - 30 * DAY);
+  while (t < to) {
+    const dt = Math.min(MIN, to - t);
+    tick(s, t, dt / HOUR);
+    t += dt;
+  }
+  s.lastUpdate = to;
+}
+
+/* ---------- Pixel-Art ---------- */
+const PAL = {
+  o: '#6b2d0c', b: '#f28c28', l: '#ffd9a8', e: '#1c1c1c', n: '#3a1a0a', p: '#ff9fb2',
+  m: '#c2334a', w: '#ffffff', t: '#5bc0f8', y: '#ffd23f', r: '#e4404f', s: '#3fa7ff',
+  c: '#8b5a2b', f: '#7ec8e3', F: '#2b6a8a', g: '#9bd67a', h: '#e4404f', z: '#2a2f3a',
+};
+const PAL_SICK = Object.assign({}, PAL, { b: '#c9b04b', l: '#e9e3b0' });
+const PAL_GHOST = Object.assign({}, PAL, { o: '#b9a99c', b: '#fbe6d6', l: '#fff8f1', n: '#b9a99c', p: '#fbe6d6', e: '#8a7a6e' });
+const PAL_NIGHT = Object.assign({}, PAL, { z: '#dfe8ff' });
+
+const BEAR = [
+  '...ooo........ooo...',
+  '..obbbo......obbbo..',
+  '..obpboooooooobpbo..',
+  '.obbbbbbbbbbbbbbbbo.',
+  'obbbbbbbbbbbbbbbbbbo',
+  'obbbbebbbbbbbbebbbbo',
+  'obbbbebbbbbbbbebbbbo',
+  'obbbpbbllllllbbpbbbo',
+  'obbbbblllnnlllbbbbbo',
+  'obbbbbllllllllbbbbbo',
+  '.obbbbbbllllbbbbbbo.',
+  '..oobbbbbbbbbbbboo..',
+  '...obbbbbbbbbbbbo...',
+  '..obbbllllllllbbbo..',
+  '.obbbllllllllllbbbo.',
+  '.obbollllllllllobbo.',
+  '..oobllllllllllboo..',
+  '...obbbllllllbbbo...',
+  '...obbbbboobbbbbo...',
+  '....ooooo..ooooo....',
+];
+const HAT = [
+  '.........yy.........',
+  '.........rr.........',
+  '........ysys........',
+  '........rrrr........',
+  '.......ysysys.......',
+  '.......rrrrrr.......',
+];
+const EGG = [
+  '....oooooo....',
+  '...owwwwwwo...',
+  '..owwwwwwwwo..',
+  '.owwwbbwwwwwo.',
+  '.owwbbbbwwwwo.',
+  'owwwwbbwwwwwwo',
+  'owwwwwwwwbbwwo',
+  'owbbwwwwbbbbwo',
+  'owbbwwwwwbbwwo',
+  'owwwwwwwwwwwwo',
+  'owwwwbbwwwwwwo',
+  '.owwbbbbwwwwo.',
+  '.owwwbbwwwbwo.',
+  '..owwwwwwwwo..',
+  '...oowwwwoo...',
+  '.....oooo.....',
+];
+const POOP = [
+  '..oo...',
+  '.occo..',
+  '..occo.',
+  '.occcco',
+  'occccco',
+  '.ooooo.',
+];
+const FISH = [
+  '..oooo.o',
+  '.offffoo',
+  'oeffffoo',
+  '.offffoo',
+  '..oooo.o',
+].map(r => r.replace(/o/g, 'F'));
+const HEART = ['.h.h.', 'hhhhh', '.hhh.', '..h..'];
+const ZED = ['zzzzz', '...z.', '..z..', '.z...', 'zzzzz'];
+
+const canvas = document.getElementById('screen');
+const ctx = canvas.getContext('2d');
+const W = 48, H = 36, PX = canvas.width / W;
+
+function drawRows(c, rows, x, y, pal, px = PX) {
+  for (let j = 0; j < rows.length; j++) {
+    const row = rows[j];
+    for (let i = 0; i < row.length; i++) {
+      const ch = row[i];
+      if (ch === '.' || !pal[ch]) continue;
+      c.fillStyle = pal[ch];
+      c.fillRect((x + i) * px, (y + j) * px, px, px);
+    }
+  }
+}
+
+/* Gesicht je nach Stimmung auf die Bären-Vorlage setzen */
+function bearGrid(mood, look = 0) {
+  const g = BEAR.map(r => r.split(''));
+  const set = (x, y, ch) => { if (g[y] && g[y][x] !== undefined) g[y][x] = ch; };
+  for (const [x, y] of [[5, 5], [5, 6], [14, 5], [14, 6]]) set(x, y, 'b');
+  const eyes = () => { for (const [x, y] of [[5, 5], [5, 6], [14, 5], [14, 6]]) set(x + look, y, 'e'); };
+  const smile = () => { set(8, 9, 'o'); set(9, 10, 'o'); set(10, 10, 'o'); set(11, 9, 'o'); };
+  const frown = () => { set(9, 9, 'o'); set(10, 9, 'o'); set(8, 10, 'o'); set(11, 10, 'o'); };
+  switch (mood) {
+    case 'happy':
+      for (const cx of [5, 14]) { set(cx - 1, 6, 'e'); set(cx, 5, 'e'); set(cx + 1, 6, 'e'); }
+      set(8, 9, 'o'); set(9, 9, 'm'); set(10, 9, 'm'); set(11, 9, 'o'); set(9, 10, 'o'); set(10, 10, 'o');
+      break;
+    case 'eat':
+      eyes();
+      set(8, 9, 'o'); set(9, 9, 'm'); set(10, 9, 'm'); set(11, 9, 'o');
+      set(8, 10, 'o'); set(9, 10, 'm'); set(10, 10, 'm'); set(11, 10, 'o');
+      break;
+    case 'sad':
+      eyes(); frown(); set(4, 7, 't'); set(4, 8, 't');
+      break;
+    case 'sleep':
+      for (const cx of [5, 14]) { set(cx - 1, 6, 'o'); set(cx, 6, 'o'); set(cx + 1, 6, 'o'); }
+      set(9, 9, 'o'); set(10, 9, 'o');
+      break;
+    case 'sick':
+      set(5, 6, 'e'); set(14, 6, 'e'); set(4, 5, 'o'); set(15, 5, 'o');
+      frown(); set(17, 4, 't'); set(17, 5, 't');
+      break;
+    case 'dead':
+      for (const cx of [5, 14]) { set(cx - 1, 4, 'e'); set(cx + 1, 4, 'e'); set(cx, 5, 'e'); set(cx - 1, 6, 'e'); set(cx + 1, 6, 'e'); }
+      set(9, 9, 'o'); set(10, 9, 'o');
+      break;
+    default:
+      eyes(); smile();
+  }
+  return g.map(r => r.join(''));
+}
+
+/* ---------- Anzeige-Zustand ---------- */
+let frame = 0;
+let bearX = 14, targetX = 14;
+let anim = null;          // { type, until }
+let tempMsg = null;       // { text, until }
+let game = null;          // Minispiel "Links oder Rechts"
+const particles = [];
+const STARS = [[3, 3], [10, 7], [17, 2], [25, 5], [33, 2], [40, 6], [45, 3], [6, 11], [38, 11]];
+
+function mood(now) {
+  if (S.dead) return 'dead';
+  if (anim && anim.type === 'eat' && anim.until > now) return 'eat';
+  if (isAsleep(S, now)) return 'sleep';
+  if (S.sick) return 'sick';
+  if (game) return 'normal';
+  if ((anim && anim.until > now && ['heart', 'clean', 'revive'].includes(anim.type)) ) return 'happy';
+  if (S.full < 25 || S.happy < 25 || S.clean < 20 || S.energy < 15) return 'sad';
+  if (S.happy > 80 && S.full > 60) return 'happy';
+  return 'normal';
+}
+
+function draw() {
+  const now = Date.now();
+  frame++;
+  const night = isNight(now) && isAsleep(S, now);
+  const napping = !night && isAsleep(S, now);
+
+  ctx.fillStyle = night ? '#1f2d4a' : napping ? '#c9d9e8' : '#eef7fb';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (night) {
+    for (const [x, y] of STARS) {
+      ctx.fillStyle = (frame + x) % 12 < 9 ? '#fff6c4' : '#6f7fa8';
+      ctx.fillRect(x * PX, y * PX, PX, PX);
+    }
+  } else {
+    ctx.fillStyle = '#ffffff';
+    for (const [x, y] of [[4, 5], [5, 4], [5, 5], [6, 5], [7, 5], [36, 7], [37, 6], [38, 6], [38, 7], [39, 7], [40, 7]]) {
+      ctx.fillRect(((x + (frame >> 4)) % W) * PX, y * PX, PX, PX);
+    }
+  }
+  ctx.fillStyle = night ? '#34476b' : '#cfe8f3';
+  ctx.fillRect(0, 34 * PX, canvas.width, 2 * PX);
+
+  if (S.stage === 'egg') {
+    const progress = Math.max(S.eggTaps / HATCH_TAPS, (now - S.createdAt) / HATCH_TIME);
+    const wobble = progress > .5 ? (frame % 4 < 2 ? -1 : 1) : (frame % 6 < 3 ? 0 : 1);
+    const egg = EGG.map(r => r.split(''));
+    if (progress > .33) { egg[4][6] = 'o'; egg[5][7] = 'o'; egg[6][6] = 'o'; }
+    if (progress > .66) { egg[6][7] = 'o'; egg[7][8] = 'o'; egg[5][9] = 'o'; egg[8][4] = 'o'; egg[9][5] = 'o'; }
+    drawRows(ctx, egg.map(r => r.join('')), 17 + wobble, 18, PAL);
+    drawParticles();
+    return;
+  }
+
+  const m = mood(now);
+  const pal = S.dead ? PAL_GHOST : S.sick ? PAL_SICK : PAL;
+
+  // Häufchen
+  const poopSpots = [[34, 28], [41, 28], [37, 22]];
+  for (let i = 0; i < S.poop; i++) drawRows(ctx, POOP, poopSpots[i][0], poopSpots[i][1], PAL);
+
+  // Bewegung: tagsüber läuft der Bär ein bisschen herum
+  const maxX = S.poop > 0 ? 12 : 27;
+  if (m === 'normal' || m === 'happy' || m === 'sad') {
+    if (!game && frame % 18 === 0) targetX = 1 + Math.floor(Math.random() * maxX);
+    if (game) targetX = 14;
+  } else targetX = Math.min(Math.max(bearX, 1), maxX);
+  targetX = Math.min(targetX, maxX);
+  if (frame % 2 === 0 && bearX !== targetX) bearX += Math.sign(targetX - bearX);
+
+  let by = 14;
+  if (S.dead) by = 11 + (frame % 8 < 4 ? 0 : 1);
+  else if (m !== 'sleep' && frame % 4 < 2) by = 15;
+
+  const look = game ? game.look : 0;
+  if (S.dead) ctx.globalAlpha = .85;
+  drawRows(ctx, bearGrid(m, look), bearX + look * 2, by, pal);
+  ctx.globalAlpha = 1;
+
+  if (S.dead) {
+    ctx.fillStyle = PAL.y;
+    for (let i = 7; i <= 12; i++) { ctx.fillRect((bearX + i) * PX, (by - 3) * PX, PX, PX); ctx.fillRect((bearX + i) * PX, (by - 1) * PX, PX, PX); }
+    ctx.fillRect((bearX + 6) * PX, (by - 2) * PX, PX, PX);
+    ctx.fillRect((bearX + 13) * PX, (by - 2) * PX, PX, PX);
+  } else if (isBirthday(now)) {
+    drawRows(ctx, HAT, bearX, by - 4, PAL);
+    if (frame % 3 === 0) particles.push({ x: Math.random() * W, y: -1, vy: .5 + Math.random() * .5, c: ['r', 'y', 's', 'g', 'p'][Math.floor(Math.random() * 5)], life: 80 });
+  }
+
+  if (m === 'sleep') {
+    const zpal = night ? PAL_NIGHT : PAL;
+    const k = Math.floor(frame / 4) % 3;
+    for (let i = 0; i <= k; i++) drawRows(ctx, ZED, bearX + 19 + i * 5, by - 1 - i * 6, zpal);
+  }
+
+  if (anim && anim.until > now) {
+    const left = anim.until - now;
+    if (anim.type === 'eat') {
+      const bite = left > 1400 ? 0 : left > 700 ? 3 : 6;
+      drawRows(ctx, FISH.map(r => r.slice(bite)), bearX - 7 + bite, by + 7, PAL);
+    }
+    if (anim.type === 'heart' || anim.type === 'revive') {
+      const rise = Math.floor((2000 - left) / 200);
+      drawRows(ctx, HEART, bearX + 16, by - 2 - rise, PAL);
+      drawRows(ctx, HEART, bearX - 2, by + 1 - rise, PAL);
+    }
+    if (anim.type === 'clean' && frame % 2 === 0) {
+      particles.push({ x: bearX + Math.random() * 20, y: by + 10 + Math.random() * 10, vy: -.6, c: 'f', life: 12 });
+    }
+  }
+  if (game && game.win) drawRows(ctx, HEART, bearX + 16, by - 3, PAL);
+
+  drawParticles();
+}
+
+function drawParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.y += p.vy; p.life--;
+    if (p.life <= 0 || p.y > H || p.y < -2) { particles.splice(i, 1); continue; }
+    ctx.fillStyle = PAL[p.c];
+    ctx.fillRect(Math.round(p.x) * PX, Math.round(p.y) * PX, PX, PX);
+  }
+}
+
+/* ---------- Oberfläche ---------- */
+const $ = id => document.getElementById(id);
+const say = (text, ms = 3500) => { tempMsg = { text, until: Date.now() + ms }; renderUI(); };
+const nm = () => S.name || 'Dein Bär';
+
+function statusText(now) {
+  if (S.stage === 'egg') return 'Tippe auf das Ei! 🥚';
+  if (S.dead) return `${nm()} ist jetzt ein kleiner Geist 👻`;
+  if (tempMsg && tempMsg.until > now) return tempMsg.text;
+  if (isAsleep(S, now)) return 'Zzz… 💤';
+  if (S.sick) return 'Mir ist so übel… 🤢 Medizin?';
+  if (S.full < 25) return 'Ich hab Hunger! 🐟';
+  if (S.poop > 0) return 'Igitt! Mach mal sauber! 💩';
+  if (S.clean < 30) return 'Ich müsste mal baden… 🛁';
+  if (S.energy < 20) return 'Ich bin sooo müde… 🥱';
+  if (S.happy < 25) return 'Mir ist langweilig… 🎾';
+  if (isBirthday(now)) return 'Heute ist Party! 🎉';
+  const lines = ['Schön, dass du da bist! 🧡', 'Ich hab dich lieb! 🐻‍❄️', 'Alles super! ✨', 'Hihi! 🐾'];
+  return lines[Math.floor(now / 20000) % lines.length];
+}
+
+function fmtDur(ms) {
+  const h = Math.floor(ms / HOUR), m = Math.ceil((ms % HOUR) / MIN);
+  return h > 0 ? `${h} Std ${m} Min` : `${m} Min`;
+}
+
+function renderUI() {
+  const now = Date.now();
+  $('name').textContent = S.stage === 'egg' ? 'Ein Ei?!' : nm();
+  if (S.stage === 'bear' && S.hatchAt) {
+    const d = Math.floor((now - S.hatchAt) / DAY);
+    $('age').textContent = d === 0 ? 'Heute geschlüpft' : d === 1 ? '1 Tag alt' : `${d} Tage alt`;
+  } else $('age').textContent = '';
+
+  $('bubble').textContent = statusText(now);
+  $('bday').classList.toggle('hidden', !isBirthday(now) || S.stage !== 'bear' || S.dead);
+
+  for (const el of document.querySelectorAll('.stat')) {
+    const v = S[el.dataset.k];
+    const bar = el.querySelector('i');
+    bar.style.width = Math.round(v) + '%';
+    bar.style.background = v > 50 ? 'var(--good)' : v > 25 ? 'var(--warn)' : 'var(--bad)';
+  }
+  $('stats').classList.toggle('hidden', S.stage === 'egg');
+
+  const asleep = S.stage === 'bear' && isAsleep(S, now);
+  $('sleepIc').textContent = asleep ? '☀️' : '🌙';
+  $('sleepLb').textContent = asleep ? 'Wecken' : 'Schlafen';
+  const disabled = S.stage !== 'bear';
+  for (const b of $('actions').querySelectorAll('button')) b.disabled = disabled;
+  document.querySelector('[data-a=feed]').classList.toggle('alert', S.full < 25);
+  document.querySelector('[data-a=clean]').classList.toggle('alert', S.poop > 0 || S.clean < 30);
+  document.querySelector('[data-a=med]').classList.toggle('alert', S.sick);
+
+  $('actions').classList.toggle('hidden', !!game || S.dead);
+  $('gameBtns').classList.toggle('hidden', !game || S.dead);
+  $('dead').classList.toggle('hidden', !S.dead);
+  if (S.dead) {
+    $('deadText').textContent = `${nm()} ist ins Bärenparadies geflogen. Aber keine Sorge – du kannst ${nm()} zurückholen!`;
+    const wait = S.lastReviveAt ? S.lastReviveAt + REVIVE_COOLDOWN - now : 0;
+    $('reviveBtn').disabled = wait > 0;
+    $('reviveInfo').textContent = wait > 0
+      ? `Wiederbeleben geht wieder in ${fmtDur(wait)}.`
+      : 'Du kannst einmal alle 2 Tage wiederbeleben.';
+  }
+}
+
+/* ---------- Aktionen ---------- */
+function wakeIfAsleep(now) {
+  if (!isAsleep(S, now)) return false;
+  S.napping = false;
+  if (isNight(now)) S.awakeUntil = now + 20 * MIN;
+  S.happy = clamp(S.happy - 5);
+  return true;
+}
+
+const ACTIONS = {
+  feed(now) {
+    const woke = wakeIfAsleep(now);
+    if (S.full >= 95) { S.happy = clamp(S.happy - 3); return say('Ich bin pappsatt! 🤰'); }
+    S.full = clamp(S.full + 30); S.happy = clamp(S.happy + 3); S.poopTimer += .5;
+    anim = { type: 'eat', until: now + 2100 };
+    say(woke ? 'Gähn… oh, Fisch! 🐟' : 'Mmmh, lecker Fisch! 🐟');
+  },
+  play(now) {
+    const woke = wakeIfAsleep(now);
+    if (S.energy < 15) return say('Zu müde zum Spielen… 🥱');
+    if (S.sick) return say('Mir geht es nicht gut… 🤢');
+    game = { round: 1, wins: 0, look: 0, busy: false, win: false };
+    say(`${woke ? 'Gähn… ' : ''}Runde 1/5: Wohin schaut ${nm()} gleich?`, 60000);
+  },
+  sleep(now) {
+    if (isAsleep(S, now)) {
+      wakeIfAsleep(now); S.happy = clamp(S.happy + 5);
+      return say('Guten Morgen! ☀️');
+    }
+    if (isNight(now)) S.awakeUntil = 0; else S.napping = true;
+    say('Gute Nacht… 🌙');
+  },
+  clean(now) {
+    wakeIfAsleep(now);
+    if (S.poop === 0 && S.clean >= 95) return say('Ich bin schon blitzsauber! ✨');
+    S.poop = 0; S.clean = 100; S.happy = clamp(S.happy + 5);
+    anim = { type: 'clean', until: now + 1500 };
+    say('Blubb blubb – frisch gebadet! 🛁');
+  },
+  med(now) {
+    wakeIfAsleep(now);
+    if (!S.sick) { S.happy = clamp(S.happy - 5); return say('Bäh! Ich bin doch gar nicht krank! 😖'); }
+    S.sick = false; S.sickTimer = 0; S.health = clamp(S.health + 10);
+    say('Danke, schon viel besser! 💊');
+  },
+};
+
+function guess(dir) {
+  if (!game || game.busy) return;
+  game.busy = true;
+  const bearDir = Math.random() < .5 ? -1 : 1;
+  game.look = bearDir;
+  game.win = dir === bearDir;
+  if (game.win) game.wins++;
+  say(game.win ? 'Richtig! 🎉' : 'Daneben! 🙈', 60000);
+  setTimeout(() => {
+    if (!game) return;
+    game.look = 0; game.win = false; game.busy = false;
+    if (game.round >= 5) {
+      const w = game.wins; game = null;
+      S.happy = clamp(S.happy + 5 + w * 7); S.energy = clamp(S.energy - 10); S.full = clamp(S.full - 5);
+      if (w >= 3) anim = { type: 'heart', until: Date.now() + 2000 };
+      save();
+      say(`${w} von 5 richtig! ${w >= 3 ? 'Das hat Spaß gemacht! 🧡' : 'Nochmal? 🎾'}`, 4000);
+    } else {
+      game.round++;
+      say(`Runde ${game.round}/5: Wohin schaut ${nm()} gleich?`, 60000);
+    }
+  }, 1200);
+}
+
+function revive() {
+  const now = Date.now();
+  if (!S.dead || (S.lastReviveAt && now - S.lastReviveAt < REVIVE_COOLDOWN)) return;
+  Object.assign(S, {
+    dead: false, diedAt: null, health: 70, full: 70, happy: 70, energy: 80, clean: 100,
+    poop: 0, sick: false, sickTimer: 0, poopTimer: 0, napping: false,
+    lastReviveAt: now, revives: S.revives + 1, lastUpdate: now,
+  });
+  anim = { type: 'revive', until: now + 2000 };
+  save();
+  say(`${nm()} ist wieder da! ✨`);
+}
+
+function hatch(now) {
+  S.stage = 'bear'; S.hatchAt = now; S.lastUpdate = now;
+  anim = { type: 'heart', until: now + 2000 };
+  for (let i = 0; i < 20; i++) particles.push({ x: 18 + Math.random() * 12, y: 20 + Math.random() * 10, vy: -.4 - Math.random() * .4, c: 'y', life: 20 });
+  save();
+  askName();
+}
+
+function askName() {
+  $('nameModal').classList.remove('hidden');
+  setTimeout(() => $('nameInput').focus(), 50);
+}
+
+/* ---------- Eingaben ---------- */
+$('actions').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b || S.stage !== 'bear' || S.dead) return;
+  update();
+  ACTIONS[b.dataset.a](Date.now());
+  save(); renderUI();
+});
+$('gameBtns').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (b) guess(Number(b.dataset.g));
+});
+$('reviveBtn').addEventListener('click', revive);
+$('nameForm').addEventListener('submit', e => {
+  e.preventDefault();
+  S.name = ($('nameInput').value.trim() || 'Bärli').slice(0, 16);
+  $('nameInput').blur();
+  $('nameModal').classList.add('hidden');
+  save();
+  say(`Hallo! Ich bin ${S.name}! 🐻‍❄️`, 5000);
+});
+canvas.addEventListener('click', () => {
+  const now = Date.now();
+  if (S.stage === 'egg') { S.eggTaps++; save(); update(); return; }
+  if (S.dead || game) return;
+  if (isAsleep(S, now)) return say('Pssst… Zzz 💤');
+  if (now - S.lastPet > 20000) { S.happy = clamp(S.happy + 3); S.lastPet = now; save(); }
+  anim = { type: 'heart', until: now + 2000 };
+  say('Hihi, das kitzelt! 🧡');
+});
+
+/* ---------- Hauptschleife ---------- */
+function update() {
+  const now = Date.now();
+  if (S.stage === 'egg') {
+    if (S.eggTaps >= HATCH_TAPS || now - S.createdAt >= HATCH_TIME) hatch(now);
+  } else {
+    simulate(S, now);
+    const year = new Date(now).getFullYear();
+    if (isBirthday(now) && S.bdayYear !== year && !S.dead) {
+      S.bdayYear = year; S.happy = 100;
+      say('Heute ist ein ganz besonderer Tag! 🎂🎉', 6000);
+    }
+    if (S.dead && game) game = null;
+  }
+  renderUI();
+}
+
+update();
+if (S.stage === 'bear' && !S.name) askName();
+setInterval(update, 1000);
+setInterval(save, 5000);
+setInterval(draw, 150);
+draw();
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else update(); });
+window.addEventListener('pagehide', save);
+
+/* iPhone: Hinweis zum Home-Bildschirm */
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+if (isIOS && !standalone) { $('iosHint').classList.remove('hidden'); document.body.classList.add('has-hint'); }
+$('iosClose').addEventListener('click', () => { $('iosHint').classList.add('hidden'); document.body.classList.remove('has-hint'); });
+
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
