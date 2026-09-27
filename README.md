@@ -10,7 +10,13 @@ Ein kleines Tamagotchi im Browser: ein orangener Eisbär in Pixel-Art. Es läuft
 - **Nachts (22–7 Uhr)** schläft der Bär, und alles läuft viel langsamer.
 - **Gnädig:** Der Bär stirbt erst nach etwa 1–2 Tagen ganz ohne Pflege.
 - **Aktionen:** Füttern, Spielen (Minispiel „Links oder Rechts“), Schlafen/Wecken, Putzen, Medizin. Antippen = Streicheln.
-- **Wiederbeleben:** einmal alle 48 Stunden.
+- **Wiederbeleben:** einmal alle 48 Stunden (nur wenn das Tier aus Vernachlässigung gestorben ist).
+- **Älterwerden:** Baby (Tag 0–1), Kind (2–3), Erwachsen (4–5), Senior mit Brille (ab Tag 6).
+  Nach 7 Tagen stirbt das Tier an Altersschwäche. Danach startet man neu und bekommt eine neue Farbe für diese Tierart.
+- **Menü:**
+  - *Spielstand sichern / laden:* Du bekommst einen Code zum Kopieren. Damit holst du dein Tier zurück, auch auf ein anderes Handy.
+  - *Tier wechseln:* Eisbär, Katze, Fuchs oder Pinguin in allen freigeschalteten Farben.
+  - *Neu starten:* mit einem neuen Ei beginnen.
 - **1. Oktober:** Der Bär trägt einen Geburtstagshut, und es regnet Konfetti.
   Vorschau jederzeit mit `?geburtstag` am Ende der Adresse.
 

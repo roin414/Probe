@@ -155,6 +155,28 @@
     font-size: 14px; font-weight: 600; box-shadow: 0 6px 0 var(--ink); z-index: 5; max-width: 420px; margin: 0 auto;
   }
   .ios b { color: var(--accent-dark); }
+  .menu-btn { width: 100%; margin-top: 12px; flex-direction: row; justify-content: center; gap: 6px; font-size: 14px; padding: 8px; background: #eaf4fa; }
+  .menu-btn span, .card .list button span { font-size: 18px; }
+  .card .list { display: grid; gap: 8px; }
+  .card .list button { justify-content: flex-start; gap: 10px; padding: 10px 14px; background: #fff; }
+  .card button.secondary { background: #fff; margin-top: 8px; }
+  .card textarea {
+    width: 100%; height: 110px; font: 12px/1.35 ui-monospace, Menlo, monospace; word-break: break-all;
+    border: 3px solid var(--ink); border-radius: 12px; padding: 8px; margin-bottom: 12px; resize: none;
+    -webkit-user-select: text; user-select: text;
+  }
+  .card .err { color: var(--bad); font-weight: 700; min-height: 18px; margin: -6px 0 8px; font-size: 13px; }
+  .species { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+  .species button { width: auto; min-width: 0; flex-direction: column; padding: 6px 2px; font-size: 11px; background: #fff; }
+  .species button.sel, .swatches button.sel { background: #ffe0bf; }
+  .species canvas { width: 48px; height: 48px; border-radius: 0; cursor: inherit; }
+  .swatches { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 8px; }
+  .swatches button { width: auto; min-width: 64px; padding: 6px 8px; font-size: 11px; flex-direction: column; background: #fff; }
+  .swatches i { display: block; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--ink); }
+  .swatches button:disabled { opacity: .45; }
+  .dead .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .dead .row button { margin: 0; }
+  .dead button.secondary { background: #fff; }
   body.has-hint { padding-bottom: calc(env(safe-area-inset-bottom) + 150px); }
   .ios .x {
     position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; padding: 0;
@@ -170,7 +192,7 @@
   </header>
 
   <div class="screen-wrap">
-    <canvas id="screen" width="384" height="288" aria-label="Dein Eisbär"></canvas>
+    <canvas id="screen" width="384" height="288" aria-label="Dein Tier"></canvas>
     <div id="bday" class="bday hidden">🎂 Alles Gute zum Geburtstag!</div>
   </div>
 
@@ -199,10 +221,60 @@
 
   <div class="dead hidden" id="dead">
     <p id="deadText"></p>
-    <button id="reviveBtn"><span>✨</span>&nbsp;Wiederbeleben</button>
+    <div class="row">
+      <button id="reviveBtn"><span>✨</span>&nbsp;Wiederbeleben</button>
+      <button id="restartBtn" class="secondary"><span>🥚</span>&nbsp;Neu starten</button>
+    </div>
     <small id="reviveInfo"></small>
   </div>
+
+  <button class="menu-btn" id="menuBtn"><span>☰</span>Menü</button>
 </main>
+
+<div class="modal hidden" id="menuModal">
+  <div class="card">
+    <h2>Menü</h2>
+    <div class="list">
+      <button data-m="save"><span>💾</span>Spielstand sichern</button>
+      <button data-m="load"><span>📥</span>Spielstand laden</button>
+      <button data-m="switch"><span>🐾</span>Tier wechseln</button>
+      <button data-m="restart"><span>🥚</span>Neu starten</button>
+    </div>
+    <button class="secondary" data-close>Schließen</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="saveModal">
+  <div class="card">
+    <h2>💾 Spielstand sichern</h2>
+    <p>Kopiere diesen Code und bewahre ihn gut auf (z.&nbsp;B. in der Notizen-App). Damit holst du dein Tier jederzeit zurück – auch auf ein anderes Handy.</p>
+    <textarea id="saveCode" readonly></textarea>
+    <button id="copyBtn">📋 Code kopieren</button>
+    <button class="secondary" data-close>Fertig</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="loadModal">
+  <div class="card">
+    <h2>📥 Spielstand laden</h2>
+    <p>Füge hier deinen gesicherten Code ein. Das aktuelle Tier wird dabei ersetzt.</p>
+    <textarea id="loadCode" placeholder="EISBAER1.…"></textarea>
+    <div class="err" id="loadErr"></div>
+    <button id="loadBtn">Laden</button>
+    <button class="secondary" data-close>Abbrechen</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="pickModal">
+  <div class="card">
+    <h2 id="pickTitle">Tier wählen</h2>
+    <div class="species" id="speciesList"></div>
+    <div class="swatches" id="swatchList"></div>
+    <p id="pickHint" style="font-size:12px"></p>
+    <button id="pickBtn">Übernehmen</button>
+    <button class="secondary" data-close>Abbrechen</button>
+  </div>
+</div>
 
 <div class="modal hidden" id="nameModal">
   <form class="card" id="nameForm">
@@ -216,7 +288,7 @@
 <div class="ios hidden" id="iosHint">
   <button class="x" id="iosClose" aria-label="Schließen">✕</button>
   📱 <b>Tipp:</b> Tippe unten auf <b>Teilen</b> (□↑) und dann auf <b>„Zum Home-Bildschirm“</b>.
-  Spiele danach nur noch über das Symbol auf dem Home-Bildschirm – sonst kann dein Bär verloren gehen.
+  Spiele danach nur noch über das Symbol auf dem Home-Bildschirm – sonst kann dein Tier verloren gehen.
 </div>
 
 <script>
@@ -228,6 +300,8 @@ const KEY = 'eisbaer-v1';
 const REVIVE_COOLDOWN = 48 * HOUR;   // einmal alle 2 Tage wiederbeleben
 const HATCH_TIME = 60e3;             // Ei schlüpft nach 1 Minute ...
 const HATCH_TAPS = 8;                // ... oder nach 8 Mal antippen
+const LIFESPAN = 7 * DAY;            // nach 7 Tagen stirbt das Tier an Altersschwäche
+const SAVE_PREFIX = 'EISBAER1.';
 const params = new URLSearchParams(location.search);
 
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -237,9 +311,13 @@ const isBirthday = t => {
   const d = new Date(t); return d.getMonth() === 9 && d.getDate() === 1;   // 1. Oktober
 };
 
+const DEFAULT_UNLOCKED = { baer: 1, katze: 1, fuchs: 1, pinguin: 1 };
+
 function newState(now) {
   return {
-    v: 1, stage: 'egg', createdAt: now, hatchAt: null, name: '', eggTaps: 0,
+    v: 2, species: 'baer', color: 0, cause: null, newUnlock: null,
+    unlocked: Object.assign({}, DEFAULT_UNLOCKED),
+    stage: 'egg', createdAt: now, hatchAt: null, name: '', eggTaps: 0,
     full: 80, happy: 80, energy: 100, clean: 100, health: 100,
     sick: false, poop: 0, poopTimer: 0, sickTimer: 0,
     napping: false, awakeUntil: 0,
@@ -248,18 +326,26 @@ function newState(now) {
   };
 }
 
+/* Gespeicherten Zustand übernehmen (auch ältere Versionen ohne Tierart) */
+function restore(s) {
+  if (!s || typeof s !== 'object' || (s.v !== 1 && s.v !== 2) || !['egg', 'bear'].includes(s.stage)) return null;
+  const r = Object.assign(newState(Date.now()), s, { v: 2 });
+  r.unlocked = Object.assign({}, DEFAULT_UNLOCKED, s.unlocked);
+  if (!SPECIES[r.species]) r.species = 'baer';
+  if (!(r.color < r.unlocked[r.species])) r.color = 0;
+  return r;
+}
+
 function load() {
   try {
-    const s = JSON.parse(localStorage.getItem(KEY));
-    if (s && s.v === 1) return Object.assign(newState(Date.now()), s);
+    const r = restore(JSON.parse(localStorage.getItem(KEY)));
+    if (r) return r;
   } catch (e) {}
   return newState(Date.now());
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
 }
-
-let S = load();
 
 const isAsleep = (s, t) => s.napping || (isNight(t) && t > s.awakeUntil);
 
@@ -296,8 +382,25 @@ function tick(s, t, h) {
   else if (s.full > 40 && s.happy > 40) s.health += 4 * h;
   s.health = clamp(s.health);
 
-  if (s.health <= 0) { s.dead = true; s.diedAt = t; s.napping = false; }
+  if (s.health <= 0) die(s, t, 'neglect');
+  else if (s.hatchAt && t - s.hatchAt >= LIFESPAN) die(s, t, 'age');
 }
+
+function die(s, t, cause) {
+  s.dead = true; s.diedAt = t; s.napping = false; s.cause = cause; s.newUnlock = null;
+  if (cause === 'age') {
+    const max = SPECIES[s.species].colors.length;
+    if (s.unlocked[s.species] < max) { s.newUnlock = s.unlocked[s.species]; s.unlocked[s.species]++; }
+  }
+}
+
+/* Altersstufe: Baby (Tag 0–1), Kind (2–3), Erwachsen (4–5), Senior (ab 6) */
+function ageStage(s, now) {
+  if (s.stage !== 'bear' || !s.hatchAt) return null;
+  const d = (now - s.hatchAt) / DAY;
+  return d < 2 ? 'baby' : d < 4 ? 'kind' : d < 6 ? 'adult' : 'senior';
+}
+const STAGE_LABEL = { baby: 'Baby', kind: 'Kind', adult: 'Erwachsen', senior: 'Senior' };
 
 function simulate(s, to) {
   let t = Math.max(s.lastUpdate, to - 30 * DAY);
@@ -315,8 +418,9 @@ const PAL = {
   m: '#c2334a', w: '#ffffff', t: '#5bc0f8', y: '#ffd23f', r: '#e4404f', s: '#3fa7ff',
   c: '#8b5a2b', f: '#7ec8e3', F: '#2b6a8a', g: '#9bd67a', h: '#e4404f', z: '#2a2f3a',
 };
-const PAL_SICK = Object.assign({}, PAL, { b: '#c9b04b', l: '#e9e3b0' });
-const PAL_GHOST = Object.assign({}, PAL, { o: '#b9a99c', b: '#fbe6d6', l: '#fff8f1', n: '#b9a99c', p: '#fbe6d6', e: '#8a7a6e' });
+PAL.k = '#3a3a44';   // Brille
+PAL.d = '#2a1a12';   // dunkle Ohrspitzen
+const PAL_GHOST = Object.assign({}, PAL, { o: '#b9a99c', b: '#fbe6d6', l: '#fff8f1', n: '#b9a99c', p: '#fbe6d6', e: '#8a7a6e', d: '#b9a99c' });
 const PAL_NIGHT = Object.assign({}, PAL, { z: '#dfe8ff' });
 
 const BEAR = [
@@ -341,6 +445,82 @@ const BEAR = [
   '...obbbbboobbbbbo...',
   '....ooooo..ooooo....',
 ];
+/* Katze & Fuchs: gleicher Körper wie der Bär, andere Ohren */
+const headWith = ears => ears.concat(BEAR.slice(3));
+const CAT = headWith([
+  '..oo............oo..',
+  '..obo..........obo..',
+  '..opbo' + 'o'.repeat(8) + 'obpo..',
+]).map((r, i) => i === 8 ? 'owww' + r.slice(4, 16) + 'wwwo' : r);
+const FOX = headWith([
+  '..dd............dd..',
+  '..olo..........olo..',
+  '..olbo' + 'o'.repeat(8) + 'oblo..',
+]);
+const PENGUIN = [
+  '....................',
+  '.......oooooo.......',
+  '.....oobbbbbboo.....',
+  '...oobbbbbbbbbboo...',
+  '.obbllllbbbbllllbbo.',
+  'obbllellbbbbllellbbo',
+  'obbllellllllllellbbo',
+  'obblpllllllllllplbbo',
+  'obbllllllnnllllllbbo',
+  'obbllllllllllllllbbo',
+  '.obbllllllllllllbbo.',
+  '..oobbbbbbbbbbbboo..',
+  '...obbbbbbbbbbbbo...',
+  '..obbbllllllllbbbo..',
+  '.obbbllllllllllbbbo.',
+  '.obbollllllllllobbo.',
+  '..oobllllllllllboo..',
+  '...obbbllllllbbbo...',
+  '...obbbbboobbbbbo...',
+  '....nnnnn..nnnnn....',
+];
+
+const SPECIES = {
+  baer: { label: 'Eisbär', sprite: BEAR, skin: 'b', defName: 'Bärli', colors: [
+    { name: 'Orange', b: '#f28c28', l: '#ffd9a8', o: '#6b2d0c' },
+    { name: 'Schneeweiß', b: '#f4f2ec', l: '#dcd5c6', o: '#6e6a75' },
+    { name: 'Rosa', b: '#f59ab8', l: '#ffe1ea', o: '#8a3553' },
+    { name: 'Mint', b: '#7fd3ae', l: '#e0fff0', o: '#2c6b4f' },
+    { name: 'Gold', b: '#f2c230', l: '#fff0b3', o: '#7a5a00' },
+  ] },
+  katze: { label: 'Katze', sprite: CAT, skin: 'b', defName: 'Mieze', colors: [
+    { name: 'Grau', b: '#9aa3ad', l: '#eef1f4', o: '#3f4650' },
+    { name: 'Rot', b: '#f5a04a', l: '#fff0dc', o: '#7a3a0a' },
+    { name: 'Schwarz', b: '#3b3b46', l: '#d8d8e2', o: '#101014', w: '#9a9aa8' },
+    { name: 'Creme', b: '#f3e3c3', l: '#fffaf0', o: '#8a6a3a', w: '#c8b48c' },
+    { name: 'Lila', b: '#b49cf0', l: '#efe8ff', o: '#4b3a80' },
+  ] },
+  fuchs: { label: 'Fuchs', sprite: FOX, skin: 'b', defName: 'Foxi', colors: [
+    { name: 'Rotfuchs', b: '#e8702a', l: '#fff6ee', o: '#5a2208', d: '#2a1a12' },
+    { name: 'Polarfuchs', b: '#e8eef2', l: '#ffffff', o: '#6a7580', d: '#6a7580' },
+    { name: 'Silber', b: '#8f98a8', l: '#f2f4f7', o: '#2f3440', d: '#1d2029' },
+    { name: 'Blau', b: '#6fa8dc', l: '#eef6ff', o: '#23466b', d: '#16304a' },
+  ] },
+  pinguin: { label: 'Pinguin', sprite: PENGUIN, skin: 'l', defName: 'Pingu', colors: [
+    { name: 'Klassisch', b: '#2d3142', l: '#ffffff', o: '#151821', n: '#f7931e' },
+    { name: 'Blau', b: '#2f6fb0', l: '#ffffff', o: '#163a60', n: '#f7931e' },
+    { name: 'Rosa', b: '#d86a9b', l: '#ffffff', o: '#5a1d3a', n: '#f7931e' },
+    { name: 'Gold', b: '#c9a227', l: '#fffbea', o: '#4d3b00', n: '#e4404f' },
+  ] },
+};
+
+function mix(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [p(a), p(b)];
+  return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+function petPalette(species, color, state) {
+  if (state === 'dead') return PAL_GHOST;
+  const pal = Object.assign({}, PAL, SPECIES[species].colors[color] || SPECIES[species].colors[0]);
+  if (state === 'sick') { pal.b = mix(pal.b, '#9bbf3a', .45); pal.l = mix(pal.l, '#e9e3b0', .4); }
+  return pal;
+}
+
 const HAT = [
   '.........yy.........',
   '.........rr.........',
@@ -401,11 +581,16 @@ function drawRows(c, rows, x, y, pal, px = PX) {
   }
 }
 
-/* Gesicht je nach Stimmung auf die Bären-Vorlage setzen */
-function bearGrid(mood, look = 0) {
-  const g = BEAR.map(r => r.split(''));
+/* Gesicht je nach Stimmung setzen und Körper nach Alter formen */
+const STAGE_ROWS = {
+  baby: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 18, 19],
+  kind: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19],
+};
+function petGrid(species, stage, mood, look = 0) {
+  const sp = SPECIES[species];
+  const g = sp.sprite.map(r => r.split(''));
   const set = (x, y, ch) => { if (g[y] && g[y][x] !== undefined) g[y][x] = ch; };
-  for (const [x, y] of [[5, 5], [5, 6], [14, 5], [14, 6]]) set(x, y, 'b');
+  for (const [x, y] of [[5, 5], [5, 6], [14, 5], [14, 6]]) set(x, y, sp.skin);
   const eyes = () => { for (const [x, y] of [[5, 5], [5, 6], [14, 5], [14, 6]]) set(x + look, y, 'e'); };
   const smile = () => { set(8, 9, 'o'); set(9, 10, 'o'); set(10, 10, 'o'); set(11, 9, 'o'); };
   const frown = () => { set(9, 9, 'o'); set(10, 9, 'o'); set(8, 10, 'o'); set(11, 10, 'o'); };
@@ -437,8 +622,18 @@ function bearGrid(mood, look = 0) {
     default:
       eyes(); smile();
   }
-  return g.map(r => r.join(''));
+  if (stage === 'senior' && mood !== 'dead') {
+    for (const cx of [5, 14]) {
+      for (let x = cx - 1; x <= cx + 1; x++) { set(x, 4, 'k'); set(x, 7, 'k'); }
+      set(cx - 2, 5, 'k'); set(cx - 2, 6, 'k'); set(cx + 2, 5, 'k'); set(cx + 2, 6, 'k');
+    }
+    for (let x = 8; x <= 11; x++) set(x, 5, 'k');
+  }
+  const rows = g.map(r => r.join(''));
+  return STAGE_ROWS[stage] ? STAGE_ROWS[stage].map(i => rows[i]) : rows;
 }
+
+let S = load();
 
 /* ---------- Anzeige-Zustand ---------- */
 let frame = 0;
@@ -489,13 +684,18 @@ function draw() {
     const egg = EGG.map(r => r.split(''));
     if (progress > .33) { egg[4][6] = 'o'; egg[5][7] = 'o'; egg[6][6] = 'o'; }
     if (progress > .66) { egg[6][7] = 'o'; egg[7][8] = 'o'; egg[5][9] = 'o'; egg[8][4] = 'o'; egg[9][5] = 'o'; }
-    drawRows(ctx, egg.map(r => r.join('')), 17 + wobble, 18, PAL);
+    const epal = petPalette(S.species, S.color);
+    // sehr helle Farben (z. B. Schneeweiß) wären auf dem weißen Ei unsichtbar
+    const lum = parseInt(epal.b.slice(1, 3), 16) + parseInt(epal.b.slice(3, 5), 16) + parseInt(epal.b.slice(5, 7), 16);
+    if (lum > 660) epal.b = epal.o;
+    drawRows(ctx, egg.map(r => r.join('')), 17 + wobble, 18, epal);
     drawParticles();
     return;
   }
 
   const m = mood(now);
-  const pal = S.dead ? PAL_GHOST : S.sick ? PAL_SICK : PAL;
+  const pal = petPalette(S.species, S.color, S.dead ? 'dead' : S.sick ? 'sick' : '');
+  const grid = petGrid(S.species, ageStage(S, now), m, game ? game.look : 0);
 
   // Häufchen
   const poopSpots = [[34, 28], [41, 28], [37, 22]];
@@ -510,13 +710,14 @@ function draw() {
   targetX = Math.min(targetX, maxX);
   if (frame % 2 === 0 && bearX !== targetX) bearX += Math.sign(targetX - bearX);
 
-  let by = 14;
-  if (S.dead) by = 11 + (frame % 8 < 4 ? 0 : 1);
-  else if (m !== 'sleep' && frame % 4 < 2) by = 15;
+  // Unterkante des Tieres steht auf dem Boden (Zeile 34), Babys sind kleiner
+  let by = 34 - grid.length;
+  if (S.dead) by -= 3 + (frame % 8 < 4 ? 0 : 1);
+  else if (m !== 'sleep' && frame % 4 < 2) by += 1;
 
   const look = game ? game.look : 0;
   if (S.dead) ctx.globalAlpha = .85;
-  drawRows(ctx, bearGrid(m, look), bearX + look * 2, by, pal);
+  drawRows(ctx, grid, bearX + look * 2, by, pal);
   ctx.globalAlpha = 1;
 
   if (S.dead) {
@@ -568,7 +769,7 @@ function drawParticles() {
 /* ---------- Oberfläche ---------- */
 const $ = id => document.getElementById(id);
 const say = (text, ms = 3500) => { tempMsg = { text, until: Date.now() + ms }; renderUI(); };
-const nm = () => S.name || 'Dein Bär';
+const nm = () => S.name || 'Dein Tier';
 
 function statusText(now) {
   if (S.stage === 'egg') return 'Tippe auf das Ei! 🥚';
@@ -582,7 +783,9 @@ function statusText(now) {
   if (S.energy < 20) return 'Ich bin sooo müde… 🥱';
   if (S.happy < 25) return 'Mir ist langweilig… 🎾';
   if (isBirthday(now)) return 'Heute ist Party! 🎉';
-  const lines = ['Schön, dass du da bist! 🧡', 'Ich hab dich lieb! 🐻‍❄️', 'Alles super! ✨', 'Hihi! 🐾'];
+  const lines = ['Schön, dass du da bist! 🧡', 'Ich hab dich lieb! 💛', 'Alles super! ✨', 'Hihi! 🐾'];
+  if (ageStage(S, now) === 'senior') lines.push('Ich bin schon ganz schön alt… 👓');
+  if (ageStage(S, now) === 'baby') lines.push('Gugu! 🍼');
   return lines[Math.floor(now / 20000) % lines.length];
 }
 
@@ -595,8 +798,9 @@ function renderUI() {
   const now = Date.now();
   $('name').textContent = S.stage === 'egg' ? 'Ein Ei?!' : nm();
   if (S.stage === 'bear' && S.hatchAt) {
-    const d = Math.floor((now - S.hatchAt) / DAY);
-    $('age').textContent = d === 0 ? 'Heute geschlüpft' : d === 1 ? '1 Tag alt' : `${d} Tage alt`;
+    const d = Math.min(7, Math.floor((now - S.hatchAt) / DAY));
+    const age = d === 0 ? 'heute geschlüpft' : d === 1 ? '1 Tag alt' : `${d} Tage alt`;
+    $('age').textContent = S.dead ? age : `${STAGE_LABEL[ageStage(S, now)]} · ${age}`;
   } else $('age').textContent = '';
 
   $('bubble').textContent = statusText(now);
@@ -622,8 +826,16 @@ function renderUI() {
   $('actions').classList.toggle('hidden', !!game || S.dead);
   $('gameBtns').classList.toggle('hidden', !game || S.dead);
   $('dead').classList.toggle('hidden', !S.dead);
-  if (S.dead) {
-    $('deadText').textContent = `${nm()} ist ins Bärenparadies geflogen. Aber keine Sorge – du kannst ${nm()} zurückholen!`;
+  if (S.dead && S.cause === 'age') {
+    const sp = SPECIES[S.species];
+    $('deadText').textContent = `${nm()} hatte ein langes, glückliches Leben und ist nach 7 Tagen friedlich ins Tierparadies gegangen. 🌈`;
+    $('reviveBtn').classList.add('hidden');
+    $('reviveInfo').textContent = S.newUnlock != null
+      ? `🎁 Neu freigeschaltet: ${sp.label} in „${sp.colors[S.newUnlock].name}“! Starte neu und probier es aus.`
+      : `Du hast schon alle Farben für ${sp.label} – probier doch mal eine andere Tierart!`;
+  } else if (S.dead) {
+    $('reviveBtn').classList.remove('hidden');
+    $('deadText').textContent = `${nm()} ist ins Tierparadies geflogen. Aber keine Sorge – du kannst ${nm()} zurückholen!`;
     const wait = S.lastReviveAt ? S.lastReviveAt + REVIVE_COOLDOWN - now : 0;
     $('reviveBtn').disabled = wait > 0;
     $('reviveInfo').textContent = wait > 0
@@ -725,6 +937,8 @@ function hatch(now) {
 }
 
 function askName() {
+  $('nameInput').value = '';
+  $('nameInput').placeholder = SPECIES[S.species].defName;
   $('nameModal').classList.remove('hidden');
   setTimeout(() => $('nameInput').focus(), 50);
 }
@@ -744,11 +958,11 @@ $('gameBtns').addEventListener('click', e => {
 $('reviveBtn').addEventListener('click', revive);
 $('nameForm').addEventListener('submit', e => {
   e.preventDefault();
-  S.name = ($('nameInput').value.trim() || 'Bärli').slice(0, 16);
+  S.name = ($('nameInput').value.trim() || SPECIES[S.species].defName).slice(0, 16);
   $('nameInput').blur();
   $('nameModal').classList.add('hidden');
   save();
-  say(`Hallo! Ich bin ${S.name}! 🐻‍❄️`, 5000);
+  say(`Hallo! Ich bin ${S.name}! 🐾`, 5000);
 });
 canvas.addEventListener('click', () => {
   const now = Date.now();
@@ -759,6 +973,118 @@ canvas.addEventListener('click', () => {
   anim = { type: 'heart', until: now + 2000 };
   say('Hihi, das kitzelt! 🧡');
 });
+
+/* ---------- Menü: Sichern, Laden, Tier wechseln, Neu starten ---------- */
+const show = id => $(id).classList.remove('hidden');
+const hide = id => $(id).classList.add('hidden');
+
+const b64enc = str => btoa(String.fromCharCode(...new TextEncoder().encode(str)));
+const b64dec = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64), c => c.charCodeAt(0)));
+const exportCode = () => SAVE_PREFIX + b64enc(JSON.stringify(S));
+function importCode(text) {
+  const code = text.replace(/\s+/g, '');
+  if (!code.startsWith(SAVE_PREFIX)) return null;
+  try { return restore(JSON.parse(b64dec(code.slice(SAVE_PREFIX.length)))); } catch (e) { return null; }
+}
+
+function newLife(species, color) {
+  const keep = { unlocked: S.unlocked, bdayYear: S.bdayYear };
+  S = Object.assign(newState(Date.now()), keep, { species, color });
+  game = null; anim = null; bearX = targetX = 14;
+  save(); renderUI();
+}
+
+let pick = null;   // { mode: 'switch' | 'new', species, color }
+function defaultColor(key) {
+  if (pick.mode === 'switch') return key === S.species ? S.color : 0;
+  return key === S.species && S.cause === 'age' && S.newUnlock != null ? S.newUnlock : 0;
+}
+function openPicker(mode) {
+  pick = { mode, species: S.species, color: 0 };
+  pick.color = defaultColor(S.species);
+  $('pickTitle').textContent = mode === 'new' ? 'Neues Tier wählen' : 'Tier wechseln';
+  $('pickBtn').textContent = mode === 'new' ? '🥚 Ei holen' : '✨ Übernehmen';
+  renderPicker();
+  show('pickModal');
+}
+function renderPicker() {
+  const list = $('speciesList');
+  list.innerHTML = '';
+  for (const [key, sp] of Object.entries(SPECIES)) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    if (key === pick.species) b.className = 'sel';
+    const c = document.createElement('canvas');
+    c.width = c.height = 60;
+    drawRows(c.getContext('2d'), petGrid(key, 'adult', 'normal'), 0, 0, petPalette(key, key === pick.species ? pick.color : 0), 3);
+    b.append(c, sp.label);
+    b.addEventListener('click', () => { pick.species = key; pick.color = defaultColor(key); renderPicker(); });
+    list.append(b);
+  }
+  const sp = SPECIES[pick.species], open = S.unlocked[pick.species];
+  const sw = $('swatchList');
+  sw.innerHTML = '';
+  sp.colors.forEach((col, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.disabled = i >= open;
+    if (i === pick.color) b.className = 'sel';
+    b.innerHTML = `<i style="background:${col.b}"></i>${i >= open ? '🔒' : col.name}`;
+    b.addEventListener('click', () => { pick.color = i; renderPicker(); });
+    sw.append(b);
+  });
+  $('pickHint').textContent = open < sp.colors.length
+    ? `🔒 Neue Farben schaltest du frei, wenn ein Tier dieser Art 7 Tage alt wird.`
+    : 'Alle Farben freigeschaltet! 🎉';
+}
+$('pickBtn').addEventListener('click', () => {
+  hide('pickModal');
+  if (pick.mode === 'new') { newLife(pick.species, pick.color); return; }
+  S.species = pick.species; S.color = pick.color;
+  save();
+  say(`Neuer Look! ✨ ${SPECIES[S.species].label} in „${SPECIES[S.species].colors[S.color].name}“`);
+});
+
+$('menuBtn').addEventListener('click', () => show('menuModal'));
+$('menuModal').addEventListener('click', e => {
+  const b = e.target.closest('[data-m]');
+  if (!b) return;
+  hide('menuModal');
+  update();
+  if (b.dataset.m === 'save') {
+    $('saveCode').value = exportCode();
+    $('copyBtn').textContent = '📋 Code kopieren';
+    show('saveModal');
+  } else if (b.dataset.m === 'load') {
+    $('loadCode').value = ''; $('loadErr').textContent = '';
+    show('loadModal');
+  } else if (b.dataset.m === 'switch') {
+    openPicker('switch');
+  } else if (b.dataset.m === 'restart') {
+    if (S.stage === 'bear' && !S.dead && !confirm(`Möchtest du ${nm()} wirklich verabschieden und mit einem neuen Ei starten?`)) return;
+    openPicker('new');
+  }
+});
+$('restartBtn').addEventListener('click', () => openPicker('new'));
+$('copyBtn').addEventListener('click', () => {
+  const ta = $('saveCode');
+  const done = () => { $('copyBtn').textContent = '✅ Kopiert!'; };
+  const fallback = () => { ta.focus(); ta.setSelectionRange(0, ta.value.length); try { document.execCommand('copy'); done(); } catch (e) {} };
+  if (navigator.clipboard) navigator.clipboard.writeText(ta.value).then(done, fallback); else fallback();
+});
+$('loadBtn').addEventListener('click', () => {
+  const r = importCode($('loadCode').value);
+  if (!r) { $('loadErr').textContent = 'Dieser Code funktioniert leider nicht. Bitte vollständig einfügen.'; return; }
+  S = r; game = null; anim = null;
+  hide('loadModal');
+  update(); save();
+  say(`Spielstand geladen – hallo ${nm()}! ✨`);
+});
+for (const m of document.querySelectorAll('.modal')) {
+  m.addEventListener('click', e => {
+    if (e.target.closest('[data-close]') || (e.target === m && m.id !== 'nameModal')) m.classList.add('hidden');
+  });
+}
 
 /* ---------- Hauptschleife ---------- */
 function update() {
