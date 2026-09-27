@@ -104,6 +104,11 @@
 
   .actions { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
   .actions.game { grid-template-columns: 1fr 1fr; }
+  canvas { touch-action: none; }
+  .foods { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
+  .card .foods button { width: auto; min-width: 0; flex-direction: column; justify-content: center; padding: 6px 2px; font-size: 11px; background: #fff; }
+  .foods small { font-size: 12px; }
+  .card p small { display: block; font-size: 11px; margin-top: 4px; }
   button {
     font: inherit;
     border: 3px solid var(--ink);
@@ -214,10 +219,7 @@
     <button data-a="med"><span>💊</span>Medizin</button>
   </nav>
 
-  <nav class="actions game hidden" id="gameBtns">
-    <button data-g="-1"><span>◀</span>Links</button>
-    <button data-g="1"><span>▶</span>Rechts</button>
-  </nav>
+  <nav class="actions game hidden" id="gameBtns"></nav>
 
   <div class="dead hidden" id="dead">
     <p id="deadText"></p>
@@ -230,6 +232,15 @@
 
   <button class="menu-btn" id="menuBtn"><span>☰</span>Menü</button>
 </main>
+
+<div class="modal hidden" id="foodModal">
+  <div class="card">
+    <h2>Was gibt's zu essen? 🍽️</h2>
+    <p>Jedes Tier mag etwas anderes – probier es aus!<br><small>❤️ Lieblingsessen · 👍 mag ich · 😐 geht so · 👎 bäh · ❓ noch nicht probiert</small></p>
+    <div class="foods" id="foodList"></div>
+    <button class="secondary" data-close>Abbrechen</button>
+  </div>
+</div>
 
 <div class="modal hidden" id="menuModal">
   <div class="card">
@@ -315,7 +326,7 @@ const DEFAULT_UNLOCKED = { baer: 1, katze: 1, fuchs: 1, pinguin: 1 };
 
 function newState(now) {
   return {
-    v: 2, species: 'baer', color: 0, cause: null, newUnlock: null,
+    v: 2, species: 'baer', color: 0, cause: null, newUnlock: null, tasted: {},
     unlocked: Object.assign({}, DEFAULT_UNLOCKED),
     stage: 'egg', createdAt: now, hatchAt: null, name: '', eggTaps: 0,
     full: 80, happy: 80, energy: 100, clean: 100, health: 100,
@@ -563,6 +574,36 @@ const FISH = [
   '..oooo.o',
 ].map(r => r.replace(/o/g, 'F'));
 const HEART = ['.h.h.', 'hhhhh', '.hhh.', '..h..'];
+Object.assign(PAL, {
+  A: '#e4404f', G: '#5cc26b', B: '#4a5bd4', H: '#f2b418', K: '#fff3d6', Q: '#ff8a5c', W: '#ffffff', C: '#8b5a2b',
+  S: '#ffd84d', Y: '#d9a400', L: '#c0c7d0', R: '#e4404f',
+});
+const SPONGE = ['.SSSSS.', 'SYSSSYS', 'SSSYSSS', '.SSSSS.'];
+const SPOON = ['.....LLL', 'LLLLLLRL', '.....LLL'];
+const THERMO = ['.k.', 'kWk', 'kWk', 'kWk', 'kWk', 'kRk', 'RRR', '.R.'];
+const THERMO_HOT = ['.k.', 'kWk', 'kRk', 'kRk', 'kRk', 'kRk', 'RRR', '.R.'];
+const DIGITS = {
+  0: ['###', '#.#', '#.#', '#.#', '###'], 1: ['.#.', '##.', '.#.', '.#.', '###'],
+  2: ['###', '..#', '###', '#..', '###'], 3: ['###', '..#', '.##', '..#', '###'],
+};
+
+/* Essen: was welches Tier mag (2 = Lieblingsessen, 1 = mag ich, 0 = geht so, -1 = bäh) */
+const FOODS = {
+  fisch:   { label: 'Fisch',   emoji: '🐟', no: 'keinen Fisch', sprite: FISH },
+  garnele: { label: 'Garnele', emoji: '🦐', no: 'keine Garnelen', sprite: ['...QQ.', '..Q..Q', '.QQQ..', 'QQQ...', '.QQ...'] },
+  beeren:  { label: 'Beeren',  emoji: '🫐', no: 'keine Beeren', sprite: ['..GG..', '.BB.BB', '.BB.BB', 'BB.BB.', 'BB.BB.'] },
+  apfel:   { label: 'Apfel',   emoji: '🍎', no: 'keinen Apfel', sprite: ['..C...', '..GC..', '.AAAA.', 'AAAAAA', 'AAAAAA', '.AAAA.'] },
+  milch:   { label: 'Milch',   emoji: '🥛', no: 'keine Milch', sprite: ['F....F', 'FWWWWF', 'FWWWWF', 'FWWWWF', '.FFFF.'] },
+  honig:   { label: 'Honig',   emoji: '🍯', no: 'keinen Honig', sprite: ['.CCCC.', 'HHHHHH', 'HHWHHH', 'HHHHHH', '.HHHH.'] },
+  kuchen:  { label: 'Kuchen',  emoji: '🍰', no: 'keinen Kuchen', sprite: ['..y...', '..R...', 'KKKKKK', 'hhhhhh', 'KKKKKK'] },
+};
+const LIKES = {
+  baer:    { fisch: 2, honig: 2, milch: 1, garnele: 1, beeren: 1, kuchen: 1, apfel: -1 },
+  katze:   { fisch: 2, milch: 2, garnele: 1, kuchen: 0, honig: 0, beeren: -1, apfel: -1 },
+  fuchs:   { beeren: 2, apfel: 2, fisch: 1, honig: 1, kuchen: 0, garnele: 0, milch: -1 },
+  pinguin: { fisch: 2, garnele: 2, milch: 0, kuchen: 0, honig: 0, beeren: -1, apfel: -1 },
+};
+const LIKE_ICON = { 2: '❤️', 1: '👍', 0: '😐', '-1': '👎' };
 const ZED = ['zzzzz', '...z.', '..z..', '.z...', 'zzzzz'];
 
 const canvas = document.getElementById('screen');
@@ -640,7 +681,8 @@ let frame = 0;
 let bearX = 14, targetX = 14;
 let anim = null;          // { type, until }
 let tempMsg = null;       // { text, until }
-let game = null;          // Minispiel "Links oder Rechts"
+let game = null;          // aktives Minispiel: { type: 'pong' | 'wash' | 'med', … }
+let petBox = null;        // wo das Tier gerade gezeichnet wird (für den Schwamm)
 const particles = [];
 const STARS = [[3, 3], [10, 7], [17, 2], [25, 5], [33, 2], [40, 6], [45, 3], [6, 11], [38, 11]];
 
@@ -648,6 +690,9 @@ function mood(now) {
   if (S.dead) return 'dead';
   if (anim && anim.type === 'eat' && anim.until > now) return 'eat';
   if (isAsleep(S, now)) return 'sleep';
+  if (game && game.type === 'wash') return 'happy';
+  if (game && game.type === 'med') return game.open ? 'eat' : 'sick';
+  if (anim && anim.type === 'yuck' && anim.until > now) return 'sad';
   if (S.sick) return 'sick';
   if (game) return 'normal';
   if ((anim && anim.until > now && ['heart', 'clean', 'revive'].includes(anim.type)) ) return 'happy';
@@ -657,8 +702,10 @@ function mood(now) {
 }
 
 function draw() {
+  if (game && game.type === 'pong') return;   // Pong zeichnet sich selbst
   const now = Date.now();
   frame++;
+  medTick(now);
   const night = isNight(now) && isAsleep(S, now);
   const napping = !night && isAsleep(S, now);
 
@@ -695,7 +742,7 @@ function draw() {
 
   const m = mood(now);
   const pal = petPalette(S.species, S.color, S.dead ? 'dead' : S.sick ? 'sick' : '');
-  const grid = petGrid(S.species, ageStage(S, now), m, game ? game.look : 0);
+  const grid = petGrid(S.species, ageStage(S, now), m);
 
   // Häufchen
   const poopSpots = [[34, 28], [41, 28], [37, 22]];
@@ -715,10 +762,10 @@ function draw() {
   if (S.dead) by -= 3 + (frame % 8 < 4 ? 0 : 1);
   else if (m !== 'sleep' && frame % 4 < 2) by += 1;
 
-  const look = game ? game.look : 0;
   if (S.dead) ctx.globalAlpha = .85;
-  drawRows(ctx, grid, bearX + look * 2, by, pal);
+  drawRows(ctx, grid, bearX, by, pal);
   ctx.globalAlpha = 1;
+  petBox = { x: bearX, y: by, w: 20, h: grid.length };
 
   if (S.dead) {
     ctx.fillStyle = PAL.y;
@@ -739,9 +786,11 @@ function draw() {
   if (anim && anim.until > now) {
     const left = anim.until - now;
     if (anim.type === 'eat') {
-      const bite = left > 1400 ? 0 : left > 700 ? 3 : 6;
-      drawRows(ctx, FISH.map(r => r.slice(bite)), bearX - 7 + bite, by + 7, PAL);
+      const food = FOODS[anim.food || 'fisch'].sprite, w = food[0].length;
+      const bite = left > 1400 ? 0 : left > 700 ? Math.floor(w / 3) : Math.floor(2 * w / 3);
+      drawRows(ctx, food.map(r => r.slice(bite)), bearX - w + 1 + bite, by + 7, PAL);
     }
+    if (anim.type === 'thermo') drawRows(ctx, anim.hot ? THERMO_HOT : THERMO, bearX + 17, by + 3, PAL);
     if (anim.type === 'heart' || anim.type === 'revive') {
       const rise = Math.floor((2000 - left) / 200);
       drawRows(ctx, HEART, bearX + 16, by - 2 - rise, PAL);
@@ -751,7 +800,12 @@ function draw() {
       particles.push({ x: bearX + Math.random() * 20, y: by + 10 + Math.random() * 10, vy: -.6, c: 'f', life: 12 });
     }
   }
-  if (game && game.win) drawRows(ctx, HEART, bearX + 16, by - 3, PAL);
+  if (game && game.type === 'wash') {
+    const sx = game.sx != null ? game.sx : bearX + 22 + (frame % 8 < 4 ? 0 : 1);
+    const sy = game.sy != null ? game.sy : by + 8;
+    drawRows(ctx, SPONGE, Math.round(sx) - 3, Math.round(sy) - 2, PAL);
+  }
+  if (game && game.type === 'med') drawRows(ctx, SPOON, bearX - 8 + (game.open ? 2 : 0), by + 8, PAL);
 
   drawParticles();
 }
@@ -854,19 +908,15 @@ function wakeIfAsleep(now) {
 }
 
 const ACTIONS = {
-  feed(now) {
-    const woke = wakeIfAsleep(now);
-    if (S.full >= 95) { S.happy = clamp(S.happy - 3); return say('Ich bin pappsatt! 🤰'); }
-    S.full = clamp(S.full + 30); S.happy = clamp(S.happy + 3); S.poopTimer += .5;
-    anim = { type: 'eat', until: now + 2100 };
-    say(woke ? 'Gähn… oh, Fisch! 🐟' : 'Mmmh, lecker Fisch! 🐟');
+  feed() {
+    renderFoods();
+    $('foodModal').classList.remove('hidden');
   },
   play(now) {
-    const woke = wakeIfAsleep(now);
+    wakeIfAsleep(now);
     if (S.energy < 15) return say('Zu müde zum Spielen… 🥱');
     if (S.sick) return say('Mir geht es nicht gut… 🤢');
-    game = { round: 1, wins: 0, look: 0, busy: false, win: false };
-    say(`${woke ? 'Gähn… ' : ''}Runde 1/5: Wohin schaut ${nm()} gleich?`, 60000);
+    startPong();
   },
   sleep(now) {
     if (isAsleep(S, now)) {
@@ -879,41 +929,199 @@ const ACTIONS = {
   clean(now) {
     wakeIfAsleep(now);
     if (S.poop === 0 && S.clean >= 95) return say('Ich bin schon blitzsauber! ✨');
-    S.poop = 0; S.clean = 100; S.happy = clamp(S.happy + 5);
-    anim = { type: 'clean', until: now + 1500 };
-    say('Blubb blubb – frisch gebadet! 🛁');
+    const hadPoop = S.poop > 0;
+    S.poop = 0;
+    game = { type: 'wash', progress: 0, start: S.clean, sx: null, sy: null };
+    setModeButtons([['done', '✅', 'Fertig']]);
+    say(`${hadPoop ? 'Häufchen weggeräumt! ' : ''}Jetzt mit dem Schwamm über ${nm()} rubbeln! 🧽`, 600000);
   },
   med(now) {
     wakeIfAsleep(now);
-    if (!S.sick) { S.happy = clamp(S.happy - 5); return say('Bäh! Ich bin doch gar nicht krank! 😖'); }
-    S.sick = false; S.sickTimer = 0; S.health = clamp(S.health + 10);
-    say('Danke, schon viel besser! 💊');
+    if (!S.sick) {
+      const temp = (36.5 + Math.random() * .6).toFixed(1).replace('.', ',');
+      anim = { type: 'thermo', until: now + 3500 };
+      return say(`🌡️ ${temp} °C – ${nm()} ist kerngesund, keine Medizin nötig! 💪`, 3500);
+    }
+    anim = { type: 'thermo', hot: true, until: now + 2500 };
+    game = { type: 'med', open: false, next: now + 2000, tries: 0 };
+    setModeButtons([['give', '🥄', 'Jetzt geben!'], ['cancel', '✕', 'Abbrechen']]);
+    say(`🌡️ 39,${1 + Math.floor(Math.random() * 8)} °C – Fieber! Gib die Medizin, wenn ${nm()} den Mund aufmacht!`, 600000);
   },
 };
 
-function guess(dir) {
-  if (!game || game.busy) return;
-  game.busy = true;
-  const bearDir = Math.random() < .5 ? -1 : 1;
-  game.look = bearDir;
-  game.win = dir === bearDir;
-  if (game.win) game.wins++;
-  say(game.win ? 'Richtig! 🎉' : 'Daneben! 🙈', 60000);
-  setTimeout(() => {
-    if (!game) return;
-    game.look = 0; game.win = false; game.busy = false;
-    if (game.round >= 5) {
-      const w = game.wins; game = null;
-      S.happy = clamp(S.happy + 5 + w * 7); S.energy = clamp(S.energy - 10); S.full = clamp(S.full - 5);
-      if (w >= 3) anim = { type: 'heart', until: Date.now() + 2000 };
-      save();
-      say(`${w} von 5 richtig! ${w >= 3 ? 'Das hat Spaß gemacht! 🧡' : 'Nochmal? 🎾'}`, 4000);
-    } else {
-      game.round++;
-      say(`Runde ${game.round}/5: Wohin schaut ${nm()} gleich?`, 60000);
-    }
-  }, 1200);
+/* ---------- Füttern: Essen auswählen ---------- */
+function renderFoods() {
+  const list = $('foodList');
+  list.innerHTML = '';
+  const known = S.tasted[S.species] || {};
+  for (const [key, f] of Object.entries(FOODS)) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = `<span>${f.emoji}</span>${f.label}<small>${key in known ? LIKE_ICON[known[key]] : '❓'}</small>`;
+    b.addEventListener('click', () => { $('foodModal').classList.add('hidden'); feedFood(key); });
+    list.append(b);
+  }
 }
+function feedFood(key) {
+  update();
+  const now = Date.now(), f = FOODS[key], like = LIKES[S.species][key];
+  const woke = wakeIfAsleep(now);
+  (S.tasted[S.species] = S.tasted[S.species] || {})[key] = like;
+  if (like < 0) {
+    S.happy = clamp(S.happy - 8);
+    anim = { type: 'yuck', until: now + 1800 };
+    say(`Bäh! Ich mag ${f.no}! 🤢`);
+  } else if (S.full >= 95) {
+    S.happy = clamp(S.happy - 3);
+    say('Ich bin pappsatt! 🤰');
+  } else {
+    let full = [22, 30, 35][like], happy = [0, 5, 12][like];
+    if (key === 'kuchen') { full = 12; happy += 8; S.clean = clamp(S.clean - 8); }
+    S.full = clamp(S.full + full); S.happy = clamp(S.happy + happy); S.poopTimer += .5;
+    anim = { type: 'eat', food: key, until: now + 2100 };
+    const text = like === 2 ? `Mmmh, ${f.label}! Mein Lieblingsessen! 😍` : like === 1 ? `Lecker, ${f.label}! 😋` : `${f.label}… naja, geht so. 😐`;
+    say((woke ? 'Gähn… ' : '') + text);
+    if (like === 2) setTimeout(() => { anim = { type: 'heart', until: Date.now() + 2000 }; }, 2100);
+  }
+  save(); renderUI();
+}
+
+/* ---------- Spielmodus-Knöpfe ---------- */
+function setModeButtons(list) {
+  const nav = $('gameBtns');
+  nav.style.gridTemplateColumns = `repeat(${list.length}, 1fr)`;
+  nav.innerHTML = list.map(([id, icon, label]) => `<button data-g="${id}"><span>${icon}</span>${label}</button>`).join('');
+}
+function endMode(text, ms) {
+  game = null;
+  save();
+  if (text) say(text, ms); else renderUI();
+}
+
+/* ---------- Waschen mit dem Schwamm ---------- */
+function scrub(x, y) {
+  const g = game;
+  if (g.sx != null && petBox && x >= petBox.x && x <= petBox.x + petBox.w && y >= petBox.y && y <= petBox.y + petBox.h) {
+    const d = Math.hypot(x - g.sx, y - g.sy);
+    g.progress = Math.min(1, g.progress + d / 160);
+    S.clean = clamp(Math.max(S.clean, g.start + (100 - g.start) * g.progress));
+    if (d > .5 && Math.random() < .6) particles.push({ x: x + Math.random() * 4 - 2, y, vy: -.5, c: Math.random() < .5 ? 'W' : 'f', life: 10 });
+    say(`Schrubb, schrubb… ${Math.round(g.progress * 100)} % 🧽`, 600000);
+    if (g.progress >= 1) {
+      S.clean = 100; S.happy = clamp(S.happy + 8);
+      anim = { type: 'clean', until: Date.now() + 1500 };
+      g.sx = null;
+      return endMode('Blitzsauber! ✨ Danke!');
+    }
+  }
+  g.sx = x; g.sy = y;
+}
+
+/* ---------- Medizin im richtigen Moment geben ---------- */
+function medTick(now) {
+  if (!game || game.type !== 'med' || now < game.next) return;
+  game.open = !game.open;
+  game.next = now + (game.open ? 900 : 900 + Math.random() * 1300);
+}
+function giveMedicine() {
+  if (!game || game.type !== 'med') return;
+  if (!game.open) {
+    game.tries++;
+    S.happy = clamp(S.happy - 1);
+    return say('Mund zu! 😖 Warte, bis der Mund offen ist…', 600000);
+  }
+  S.sick = false; S.sickTimer = 0; S.health = clamp(S.health + 10);
+  anim = { type: 'heart', until: Date.now() + 2000 };
+  endMode('Brrr… aber schon viel besser! Danke! 💊');
+}
+
+/* ---------- Pong gegen das Tier ---------- */
+const PONG_WIN = 3, PADDLE = 8;
+function startPong() {
+  game = { type: 'pong', py: H / 2, ey: H / 2, bx: 0, by: 0, vx: 0, vy: 0, you: 0, pet: 0, dir: 0, target: null, last: performance.now() };
+  serve(1);
+  setModeButtons([['up', '▲', 'Hoch'], ['down', '▼', 'Runter'], ['stop', '✕', 'Aufhören']]);
+  pongSay();
+  requestAnimationFrame(pongLoop);
+}
+function serve(toward) {
+  const g = game, a = Math.random() * .8 - .4;
+  g.bx = W / 2; g.by = H / 2;
+  g.vx = toward * 20 * Math.cos(a); g.vy = 20 * Math.sin(a); g.err = 0;
+  g.wait = performance.now() + 900;
+}
+const pongSay = () => say(`🏓 Du ${game.you} : ${game.pet} ${nm()} – wische auf dem Bildschirm hoch und runter!`, 600000);
+function pongLoop(ts) {
+  const g = game;
+  if (!g || g.type !== 'pong') return;
+  const dt = Math.min(.05, (ts - g.last) / 1000);
+  g.last = ts;
+  const lim = y => Math.max(PADDLE / 2, Math.min(H - PADDLE / 2, y));
+  // Spieler
+  if (g.target != null) { const d = g.target - g.py; g.py += Math.sign(d) * Math.min(Math.abs(d), 70 * dt); }
+  else g.py += g.dir * 40 * dt;
+  g.py = lim(g.py);
+  // Tier: folgt dem Ball, aber nicht perfekt (müde Tiere sind langsamer)
+  const aim = g.vx > 0 ? g.by + g.err : H / 2;
+  const speed = 11 + S.energy / 100 * 7;
+  g.ey = lim(g.ey + Math.sign(aim - g.ey) * Math.min(Math.abs(aim - g.ey), speed * dt));
+  // Ball
+  if (ts >= g.wait) {
+    g.bx += g.vx * dt; g.by += g.vy * dt;
+    if (g.by < 1) { g.by = 1; g.vy = Math.abs(g.vy); }
+    if (g.by > H - 1) { g.by = H - 1; g.vy = -Math.abs(g.vy); }
+    const hit = (py, dir) => {
+      g.vx = dir * Math.min(46, Math.abs(g.vx) * 1.08);
+      g.vy = Math.max(-30, Math.min(30, g.vy + (g.by - py) * 3 + (Math.random() - .5) * 8));
+      if (Math.abs(g.vy) < 4) g.vy = g.vy < 0 ? -4 : 4;       // nie ganz waagerecht – sonst endlose Ballwechsel
+      g.err = dir > 0 ? (Math.random() - .5) * 12 : 0;         // das Tier zielt nicht immer genau
+    };
+    if (g.vx < 0 && g.bx <= 4 && g.bx >= 1 && Math.abs(g.by - g.py) <= PADDLE / 2 + 1) { g.bx = 4; hit(g.py, 1); }
+    if (g.vx > 0 && g.bx >= W - 4 && g.bx <= W - 1 && Math.abs(g.by - g.ey) <= PADDLE / 2 + 1) { g.bx = W - 4; hit(g.ey, -1); }
+    if (g.bx < -1) { g.pet++; pongSay(); serve(1); }
+    if (g.bx > W + 1) { g.you++; pongSay(); serve(-1); }
+  }
+  if (g.you >= PONG_WIN || g.pet >= PONG_WIN) return endPong();
+  drawPong();
+  requestAnimationFrame(pongLoop);
+}
+function drawPong() {
+  const g = game, px = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x) * PX, Math.round(y) * PX, PX, PX); };
+  ctx.fillStyle = '#16323f';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (let y = 0; y < H; y += 3) px(W / 2 - .5, y, '#2f5566');
+  const digit = (n, x) => DIGITS[n].forEach((r, j) => [...r].forEach((c, i) => c === '#' && px(x + i, 2 + j, '#8fb3c2')));
+  digit(g.you, 18); digit(g.pet, 27);
+  const petColor = petPalette(S.species, S.color).b;
+  for (let i = 0; i < PADDLE; i++) { px(2, g.py - PADDLE / 2 + i, '#ffffff'); px(W - 3, g.ey - PADDLE / 2 + i, petColor); }
+  px(g.bx - 1, g.by - 1, PAL.y); px(g.bx, g.by - 1, PAL.y); px(g.bx - 1, g.by, PAL.y); px(g.bx, g.by, PAL.y);
+}
+function endPong() {
+  const won = game.you > game.pet, score = `${game.you} : ${game.pet}`;
+  S.happy = clamp(S.happy + (won ? 25 : 15)); S.energy = clamp(S.energy - 12); S.full = clamp(S.full - 6);
+  anim = { type: 'heart', until: Date.now() + 2000 };
+  endMode(won ? `Du hast ${score} gewonnen! 🏆 ${nm()} will Revanche!` : `${nm()} gewinnt ${score}! 😄 Das hat Spaß gemacht!`, 5000);
+  draw();
+}
+
+function pointerPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H];
+}
+canvas.addEventListener('pointerdown', e => {
+  if (game && game.type === 'pong') { game.target = pointerPos(e)[1]; game.dir = 0; }
+  if (game && game.type === 'wash') { const [x, y] = pointerPos(e); game.sx = x; game.sy = y; }
+});
+canvas.addEventListener('pointermove', e => {
+  if (!game) return;
+  const [x, y] = pointerPos(e);
+  if (game.type === 'pong' && (e.pointerType === 'mouse' || e.buttons)) game.target = y;
+  if (game.type === 'wash') scrub(x, y);
+});
+document.addEventListener('keydown', e => {
+  if (game && game.type === 'pong' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { game.target = null; game.dir = e.key === 'ArrowUp' ? -1 : 1; }
+});
+document.addEventListener('keyup', e => { if (game && game.type === 'pong') game.dir = 0; });
 
 function revive() {
   const now = Date.now();
@@ -951,9 +1159,22 @@ $('actions').addEventListener('click', e => {
   ACTIONS[b.dataset.a](Date.now());
   save(); renderUI();
 });
+$('gameBtns').addEventListener('pointerdown', e => {
+  const b = e.target.closest('button');
+  if (!b || !game || game.type !== 'pong') return;
+  if (b.dataset.g === 'up' || b.dataset.g === 'down') { game.target = null; game.dir = b.dataset.g === 'up' ? -1 : 1; }
+});
+for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) {
+  $('gameBtns').addEventListener(ev, () => { if (game && game.type === 'pong') game.dir = 0; });
+}
 $('gameBtns').addEventListener('click', e => {
   const b = e.target.closest('button');
-  if (b) guess(Number(b.dataset.g));
+  if (!b || !game) return;
+  const g = b.dataset.g;
+  if (g === 'stop') { endMode('Okay, ein andermal! 🏓'); draw(); }
+  if (g === 'done') endMode(game.progress >= .5 ? 'Schon viel sauberer! 🫧' : 'Noch nicht ganz sauber… 🧽');
+  if (g === 'give') giveMedicine();
+  if (g === 'cancel') endMode(`${nm()} ist froh – aber das Fieber bleibt… 🤒`);
 });
 $('reviveBtn').addEventListener('click', revive);
 $('nameForm').addEventListener('submit', e => {
@@ -967,6 +1188,7 @@ $('nameForm').addEventListener('submit', e => {
 canvas.addEventListener('click', () => {
   const now = Date.now();
   if (S.stage === 'egg') { S.eggTaps++; save(); update(); return; }
+  if (game && game.type === 'med') return giveMedicine();
   if (S.dead || game) return;
   if (isAsleep(S, now)) return say('Pssst… Zzz 💤');
   if (now - S.lastPet > 20000) { S.happy = clamp(S.happy + 3); S.lastPet = now; save(); }
@@ -988,7 +1210,7 @@ function importCode(text) {
 }
 
 function newLife(species, color) {
-  const keep = { unlocked: S.unlocked, bdayYear: S.bdayYear };
+  const keep = { unlocked: S.unlocked, bdayYear: S.bdayYear, tasted: S.tasted };
   S = Object.assign(newState(Date.now()), keep, { species, color });
   game = null; anim = null; bearX = targetX = 14;
   save(); renderUI();
